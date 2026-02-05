@@ -1,0 +1,1 @@
+window.__RUNTIME_CONFIG__ = {"VITE_DOCUMENT_SIZE_LIMIT":"5","VITE_API_BASE_URL":"https://uatbpmdocs.nmbbank.com.np/api"};
