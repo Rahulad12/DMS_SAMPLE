@@ -68,6 +68,22 @@ export const mockDocument: DMSDocument =
           allowMultiple: true,
           allowUpdate: true,
           allowDelete: true,
+        }, {
+          id: "002",
+          label: "Passport",
+          documents: [
+            {
+              label: "Passport-Front",
+              file: null,
+            },
+            {
+              label: "Passport-Back",
+              file: null,
+            }
+          ],
+          allowMultiple: true,
+          allowUpdate: true,
+          allowDelete: true,
         }
       ],
       isRequired: true,

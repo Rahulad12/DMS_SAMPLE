@@ -10,7 +10,6 @@ export type ExtendedDocument = RequiredDocument & {
 };
 
 export function useDocument(initialDocuments: RequiredDocument[]) {
-  console.log(initialDocuments)
   // Initialize with extended properties
   const [documents, setDocuments] = useState<ExtendedDocument[]>(() =>
     initialDocuments.map((doc) => ({
@@ -20,10 +19,9 @@ export function useDocument(initialDocuments: RequiredDocument[]) {
   );
 
   const [activeId, setActiveId] = useState<string>(initialDocuments[0]?.id || "");
+  const activeIndex = documents.findIndex((d) => d.id === activeId).toString();
+  const activeDocument = documents[Number(activeIndex)];
 
-  const activeIndex = documents.findIndex((d) => d.id === activeId);
-  const activeDocument = documents[activeIndex];
-  console.log(activeDocument, "activeDocument")
   // Calculate uploaded count based on the 'status' or actual file presence
   const uploadedCount = documents.filter((d) => d.status === "uploaded").length;
 
@@ -32,15 +30,15 @@ export function useDocument(initialDocuments: RequiredDocument[]) {
   };
 
   const handleUpload = (files: File[]) => {
-    if (files.length === 0 || activeIndex === -1) return;
+    if (files.length === 0 || Number(activeIndex) === -1) return;
 
     const file = files[0];
     const isImage = file.type.startsWith("image/");
     const previewUrl = URL.createObjectURL(file);
 
     const newDocuments = [...documents];
-    newDocuments[activeIndex] = {
-      ...newDocuments[activeIndex],
+    newDocuments[Number(activeIndex)] = {
+      ...newDocuments[Number(activeIndex)],
       status: "uploaded",
       file: file,
       previewUrl: previewUrl,
@@ -52,16 +50,16 @@ export function useDocument(initialDocuments: RequiredDocument[]) {
   };
 
   const handleReplace = () => {
-    if (activeIndex === -1) return;
+    if (Number(activeIndex) === -1) return;
 
     const newDocuments = [...documents];
     // Revoke old URL to avoid memory leaks
-    if (newDocuments[activeIndex].previewUrl) {
-      URL.revokeObjectURL(newDocuments[activeIndex].previewUrl!);
+    if (newDocuments[Number(activeIndex)].previewUrl) {
+      URL.revokeObjectURL(newDocuments[Number(activeIndex)].previewUrl!);
     }
 
-    newDocuments[activeIndex] = {
-      ...newDocuments[activeIndex],
+    newDocuments[Number(activeIndex)] = {
+      ...newDocuments[Number(activeIndex)],
       status: "pending",
       file: undefined,
       previewUrl: undefined,

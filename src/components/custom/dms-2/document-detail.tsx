@@ -18,7 +18,6 @@ export function DocumentDetail({
   onReplace,
   selectedTypeId,
 }: DocumentDetailProps) {
-  console.log(document, "document")
   const isUploaded = document.documents.length > 0;
 
   const selectedType = document;
@@ -28,7 +27,7 @@ export function DocumentDetail({
       {/* document upload sections */}
       <div className="p-4 border-b border-slate-200 bg-white h-full overflow-y-auto max-h-screen">
         <div className="flex items-center gap-2 mb-4">
-          <h2 className="text-xl font-bold text-slate-800">{document.id}</h2>
+          <h2 className="text-xl font-bold text-slate-800 capitalize">{document.label}</h2>
           {document.isRequired && (
             <Badge
               variant="secondary"
@@ -55,16 +54,7 @@ export function DocumentDetail({
               multiple
               onFilesChange={onUpload}
               className="bg-transparent"
-              documents={selectedType.documents.map((doc) => {
-                return {
-                  id: doc.id,
-                  label: doc.label,
-                  documents: doc.documents,
-                  allowMultiple: doc.allowMultiple,
-                  allowUpdate: doc.allowUpdate,
-                  allowDelete: doc.allowDelete,
-                }
-              })}
+              documents={selectedType.documents}
             />
           </>
         ) : (

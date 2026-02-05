@@ -17,7 +17,6 @@ const DocumentUploadLayout = () => {
     handleReplace,
   } = useDocument(mockDocument.required_documents);
 
-  console.log(activeIndex, "activeIndex")
   const { data, isLoading, error } = useGetDocuments({
     TransactionId: '',
     MerchantId: '',
@@ -25,7 +24,6 @@ const DocumentUploadLayout = () => {
   });
 
   console.log(data, isLoading, error);
-
   return (
     <DMSLayout
       enrollmentId="NMB-2024-8892"

@@ -56,6 +56,7 @@ export default function DocumentUploader({
   simulateUpload = true,
   documents,
 }: DocumentUploaderProps) {
+  console.log(documents, "documents")
   const [uploadFiles, setUploadFiles] = useState<FileUploadItem[]>([]);
   const [selectedDocument, setSelectedDocument] = useState<number | null>(null);
 
@@ -178,10 +179,10 @@ export default function DocumentUploader({
   return (
     <div className={cn('w-full space-y-6', className)}>
       {/* Required Documents */}
-      {identificationType && (
+      {documents && (
         <Card className="border-2 shadow-sm">
           <CardHeader className="pb-3">
-            <CardTitle className="text-lg">Required Documents for {identificationType.label}</CardTitle>
+            <CardTitle className="text-lg">Required Documents for {documents.label}</CardTitle>
             <CardDescription>Upload all required documents below</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
