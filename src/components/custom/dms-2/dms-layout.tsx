@@ -22,6 +22,7 @@ const DMSLayout = ({
   activeIndex,
   onSelectDocument,
 }: DMSLayoutProps) => {
+  console.log(documents, "documents_layout");
   return (
     <SidebarProvider>
       <DocumentStrip

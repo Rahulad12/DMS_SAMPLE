@@ -152,7 +152,7 @@ interface DocumentStripProps extends Omit<
 interface DocumentNodeProps {
   node: any;
   depth?: number;
-  onSelectDocument: (document: any) => void;
+  onSelectDocument: (index: string) => void;
   selectedDocumentId: string;
   getNodeId: (node: any) => string;
 }
@@ -169,7 +169,7 @@ const DocumentNode = ({
   const nodeId = getNodeId(node);
   const isSelected = selectedDocumentId === nodeId;
   const hasChildren = node.documents && node.documents.length > 0;
-  const isLeaf = !hasChildren && node.file !== undefined;
+  // const isLeaf = !hasChildren && node.file !== undefined;
 
   return (
     <div className="w-full">
@@ -178,14 +178,14 @@ const DocumentNode = ({
           if (hasChildren) {
             setIsExpanded(!isExpanded);
           } else {
-            onSelectDocument(node);
+            onSelectDocument(nodeId);
           }
         }}
         className={cn(
           'w-full flex items-center justify-between gap-2 h-auto py-2 px-3 transition-all',
           isSelected && 'bg-primary-foreground text-primary',
           !isSelected && 'hover:bg-primary-foreground/10 hover:text-primary-foreground',
-          depth > 0 && 'ml-4'
+          depth > 0 && 'ml-1'
         )}
         style={{ paddingLeft: `${depth * 12 + 12}px` }}
       >
@@ -214,16 +214,10 @@ const DocumentNode = ({
               )}
             />
           )}
-
           <span className="text-sm font-medium truncate">
             {node.label}
           </span>
         </div>
-
-        {/* Optional: Show file status indicator for leaf nodes */}
-        {isLeaf && node.file && (
-          <div className="w-2 h-2 rounded-full bg-green-500 shrink-0" />
-        )}
       </SidebarMenuButton>
 
       {hasChildren && isExpanded && (
@@ -251,6 +245,7 @@ const DocumentStrip = ({
   className,
   ...props
 }: DocumentStripProps) => {
+  console.log("requiredDocuments", requiredDocuments);
   const [expandedCategories, setExpandedCategories] = useState<Set<string>>(
     new Set()
   );
@@ -310,7 +305,7 @@ const DocumentStrip = ({
         </div>
 
         <div className="flex-1 overflow-auto">
-          <SidebarMenu className="gap-0 p-2">
+          <SidebarMenu className="gap-0 p-1">
             {requiredDocuments.map((category) => {
               const isCategoryExpanded = expandedCategories.has(category.id);
 
@@ -320,7 +315,7 @@ const DocumentStrip = ({
                   <SidebarMenuItem>
                     <SidebarMenuButton
                       onClick={() => toggleCategory(category.id)}
-                      className="w-full flex items-center justify-between gap-2 h-auto py-3 px-3 hover:bg-primary-foreground/10 hover:text-primary-foreground"
+                      className="w-full flex items-center justify-between gap-2 h-auto py-1 px-1 hover:bg-primary-foreground/10 hover:text-primary-foreground"
                     >
                       <div className="flex items-center gap-2 flex-1">
                         <ChevronRight
@@ -335,8 +330,8 @@ const DocumentStrip = ({
                           {category.label}
                         </span>
                       </div>
-                      <span className="text-xs opacity-75">
-                        {category.no_of_mandatory} required
+                      <span className="text-xs opacity-75 bg-[#7AB2B2] rounded-full px-2 py-1 text-[# 280905]">
+                        {category.no_of_mandatory} <span className="text-red-700 font-bold">*</span>
                       </span>
                     </SidebarMenuButton>
                   </SidebarMenuItem>

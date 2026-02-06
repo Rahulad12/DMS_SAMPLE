@@ -24,6 +24,8 @@ const DocumentUploadLayout = () => {
   });
 
   console.log(data, isLoading, error);
+  console.log(documents, "documents");
+  console.log("activeIndex", activeIndex);
   return (
     <DMSLayout
       enrollmentId="NMB-2024-8892"
