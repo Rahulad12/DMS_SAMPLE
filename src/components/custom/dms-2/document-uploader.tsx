@@ -9,16 +9,13 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
   CloudUpload,
-  FileArchiveIcon,
   FileSpreadsheetIcon,
   FileTextIcon,
-  HeadphonesIcon,
   ImageIcon,
   RefreshCwIcon,
   Trash2,
   TriangleAlert,
   Upload,
-  VideoIcon,
   CheckCircle2,
   XCircle,
 } from 'lucide-react';
@@ -26,8 +23,6 @@ import { cn } from '@/lib/utils';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import type { Document } from '@/types/types';
-
 interface FileUploadItem extends FileWithPreview {
   progress: number;
   status: 'uploading' | 'completed' | 'error';
@@ -41,24 +36,32 @@ interface DocumentUploaderProps {
   accept?: string;
   multiple?: boolean;
   className?: string;
-  onFilesChange?: (files: FileWithPreview[]) => void;
+  onFilesChange?: (files: FileWithPreview[], label?: string) => void;
   simulateUpload?: boolean;
-  documents?: Document[];
+  documents?: any[];
+  defaultLabel?: string;
 }
 
 export default function DocumentUploader({
   maxFiles = 10,
-  maxSize = 50 * 1024 * 1024, // 50MB
+  maxSize = 5 * 1024 * 1024,
   accept = '*',
   multiple = true,
   className,
   onFilesChange,
-  simulateUpload = true,
-  documents,
+  documents = [],
+  defaultLabel,
 }: DocumentUploaderProps) {
-  console.log(documents, "documents")
+  console.log("documents", documents);
   const [uploadFiles, setUploadFiles] = useState<FileUploadItem[]>([]);
-  const [selectedDocument, setSelectedDocument] = useState<number | null>(null);
+  const [selectedDocument, setSelectedDocument] = useState<string | null>(null);
+
+  // // Auto-select first document if available
+  // useEffect(() => {
+  //   if (documents && documents.length > 0 && !selectedDocument) {
+  //     setSelectedDocument(documents[0].label || documents[0].id);
+  //   }
+  // }, [documents, selectedDocument]);
 
   const [
     { isDragging, errors },
@@ -92,50 +95,20 @@ export default function DocumentUploader({
             ...file,
             progress: 0,
             status: 'uploading' as const,
-            documentLabel: selectedDocument ? getDocumentLabel(selectedDocument) : undefined,
+            documentLabel: selectedDocument ? getDocumentLabel(selectedDocument) : (defaultLabel || 'N/A'),
           };
         }
       });
       setUploadFiles(newUploadFiles);
-      onFilesChange?.(newFiles);
+      onFilesChange?.(newFiles, selectedDocument ? getDocumentLabel(selectedDocument) : defaultLabel);
     },
   });
 
-  const getDocumentLabel = (docId: number): string => {
-    if (!documents) return '';
-    const doc = documents.find((d) => d.id);
-    return doc?.label || '';
+  const getDocumentLabel = (docId: string): string => {
+    if (!documents) return defaultLabel || '';
+    const doc = documents.find((d) => (d.id === docId || d.label === docId));
+    return doc?.label || defaultLabel || '';
   };
-
-  // Simulate upload progress
-  useEffect(() => {
-    if (!simulateUpload) return;
-
-    const interval = setInterval(() => {
-      setUploadFiles((prev) =>
-        prev.map((file) => {
-          if (file.status !== 'uploading') return file;
-
-          const increment = Math.random() * 15 + 5;
-          const newProgress = Math.min(file.progress + increment, 100);
-
-          if (newProgress >= 100) {
-            const shouldFail = Math.random() < 0.05; // 5% chance to fail
-            return {
-              ...file,
-              progress: 100,
-              status: shouldFail ? ('error' as const) : ('completed' as const),
-              error: shouldFail ? 'Upload failed. Please try again.' : undefined,
-            };
-          }
-
-          return { ...file, progress: newProgress };
-        }),
-      );
-    }, 500);
-
-    return () => clearInterval(interval);
-  }, [simulateUpload]);
 
   const removeUploadFile = (fileId: string) => {
     setUploadFiles((prev) => prev.filter((file) => file.id !== fileId));
@@ -153,123 +126,71 @@ export default function DocumentUploader({
   const getFileIcon = (file: File | FileMetadata) => {
     const type = file instanceof File ? file.type : file.type;
     if (type.startsWith('image/')) return <ImageIcon className="size-4" />;
-    if (type.startsWith('video/')) return <VideoIcon className="size-4" />;
-    if (type.startsWith('audio/')) return <HeadphonesIcon className="size-4" />;
     if (type.includes('pdf')) return <FileTextIcon className="size-4" />;
     if (type.includes('word') || type.includes('doc')) return <FileTextIcon className="size-4" />;
     if (type.includes('excel') || type.includes('sheet')) return <FileSpreadsheetIcon className="size-4" />;
-    if (type.includes('zip') || type.includes('rar')) return <FileArchiveIcon className="size-4" />;
     return <FileTextIcon className="size-4" />;
   };
 
   const getFileTypeLabel = (file: File | FileMetadata) => {
     const type = file instanceof File ? file.type : file.type;
     if (type.startsWith('image/')) return 'Image';
-    if (type.startsWith('video/')) return 'Video';
-    if (type.startsWith('audio/')) return 'Audio';
     if (type.includes('pdf')) return 'PDF';
     if (type.includes('word') || type.includes('doc')) return 'Word';
     if (type.includes('excel') || type.includes('sheet')) return 'Excel';
-    if (type.includes('zip') || type.includes('rar')) return 'Archive';
-    if (type.includes('json')) return 'JSON';
-    if (type.includes('text')) return 'Text';
     return 'File';
   };
 
   return (
     <div className={cn('w-full space-y-6', className)}>
-      {/* Required Documents */}
-      {documents && (
-        <Card className="border-2 shadow-sm">
-          <CardHeader className="pb-3">
-            <CardTitle className="text-lg">Required Documents for {documents.label}</CardTitle>
-            <CardDescription>Upload all required documents below</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            {documents?.map((doc) => {
-              const uploadedFile = uploadFiles.find((f) => f.documentLabel === doc.label);
-              const isSelected = selectedDocument === doc.id;
-
-              return (
-                <div
-                  key={doc.id}
-                  className={cn(
-                    'rounded-lg border-2 p-4 transition-all cursor-pointer hover:border-primary/50',
-                    isSelected && 'border-primary bg-primary/5',
-                    uploadedFile?.status === 'completed' && 'border-green-500 bg-green-50',
-                  )}
-                  onClick={() => setSelectedDocument(doc.id)}
-                >
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <div
-                        className={cn(
-                          'w-10 h-10 rounded-full flex items-center justify-center',
-                          uploadedFile?.status === 'completed'
-                            ? 'bg-green-100'
-                            : uploadedFile?.status === 'error'
-                              ? 'bg-red-100'
-                              : 'bg-slate-100',
-                        )}
-                      >
-                        {uploadedFile?.status === 'completed' ? (
-                          <CheckCircle2 className="w-5 h-5 text-green-600" />
-                        ) : uploadedFile?.status === 'error' ? (
-                          <XCircle className="w-5 h-5 text-red-600" />
-                        ) : (
-                          <FileTextIcon className="w-5 h-5 text-slate-600" />
-                        )}
-                      </div>
-                      <div>
-                        <p className="font-semibold text-sm">{doc.label}</p>
-                        {uploadedFile && (
-                          <p className="text-xs text-muted-foreground">
-                            {uploadedFile.file.name} ({formatBytes(uploadedFile.file.size)})
-                          </p>
-                        )}
-                      </div>
-                    </div>
-                    <Badge
-                      variant={uploadedFile?.status === 'completed' ? 'default' : 'secondary'}
-                      className={cn(
-                        uploadedFile?.status === 'completed' && 'bg-green-600 hover:bg-green-700',
-                      )}
-                    >
-                      {uploadedFile?.status === 'completed'
-                        ? 'Uploaded'
-                        : uploadedFile?.status === 'uploading'
-                          ? `${Math.round(uploadedFile.progress)}%`
-                          : 'Required'}
-                    </Badge>
-                  </div>
-                </div>
-              );
-            })}
-
-          </CardContent>
-        </Card>
-      )}
-
       {/* Upload Area */}
       <div
         className={cn(
-          'relative rounded-xl border-2 border-dashed p-8 text-center transition-all',
+          'relative rounded-xl p-8 text-center transition-all border border-dashed',
           isDragging
             ? 'border-primary bg-primary/10 scale-[1.02]'
             : 'border-muted-foreground/25 hover:border-primary/50 hover:bg-accent/50',
-          !selectedDocument && 'opacity-50 pointer-events-none',
+          (!selectedDocument && documents.length > 0) && 'opacity-50 pointer-events-none',
         )}
         onDragEnter={handleDragEnter}
         onDragLeave={handleDragLeave}
         onDragOver={handleDragOver}
         onDrop={handleDrop}
       >
-        <input {...getInputProps()} className="sr-only" disabled={!selectedDocument} />
+        <input {...getInputProps()} className="sr-only" disabled={!selectedDocument && documents.length > 0} />
 
         <div className="flex flex-col items-center gap-4">
+          {/* Document Type Selector */}
+          {documents.length > 0 && (
+            <div className="flex flex-wrap justify-center gap-2 mb-2">
+              {documents.map((doc) => {
+                const docId = doc.id || doc.label;
+                const isSelected = selectedDocument === docId;
+                return (
+                  <Button
+                    key={docId}
+                    variant={isSelected ? "default" : "outline"}
+                    size="sm"
+                    className={cn(
+                      "rounded-full px-4 h-8 text-xs",
+                      isSelected && "bg-primary text-primary-foreground shadow-sm"
+                    )}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setSelectedDocument(docId);
+                    }}
+                  >
+                    {isSelected && <CheckCircle2 className="mr-1 size-3" />}
+                    {doc.label}
+                  </Button>
+                );
+              })}
+            </div>
+          )}
+
           <div
             className={cn(
-              'flex h-16 w-16 items-center justify-center rounded-full bg-gradient-to-br from-primary/20 to-primary/5 transition-all',
+              'flex h-16 w-16 items-center justify-center rounded-full bg-linear-to-br from-primary/20 to-primary/5 transition-all',
               isDragging && 'scale-110 from-primary/30 to-primary/10',
             )}
           >
@@ -278,7 +199,7 @@ export default function DocumentUploader({
 
           <div className="space-y-2">
             <p className="text-base font-semibold">
-              {selectedDocument ? (
+              {(selectedDocument || documents.length === 0) ? (
                 <>
                   Drop files here or{' '}
                   <button
@@ -310,7 +231,7 @@ export default function DocumentUploader({
                 <CardDescription>Manage your uploaded documents</CardDescription>
               </div>
               <div className="flex gap-2">
-                <Button onClick={openFileDialog} variant="outline" size="sm" disabled={!selectedDocument}>
+                <Button onClick={openFileDialog} variant="outline" size="sm" disabled={!selectedDocument && documents.length > 0}>
                   <CloudUpload className="mr-2 h-4 w-4" />
                   Add files
                 </Button>
@@ -321,6 +242,7 @@ export default function DocumentUploader({
               </div>
             </div>
           </CardHeader>
+
           <CardContent>
             <div className="rounded-lg border">
               <Table>

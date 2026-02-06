@@ -25,17 +25,18 @@ export interface RequiredDocument {
   id: string
   label: string
   documents: Document[]
-  no_of_mandatory: number
+  no_of_mandatory?: number
   isRequired: boolean
 }
 
 export interface Document {
   id: string
   label: string
-  documents: Document2[]
-  allowMultiple: boolean
-  allowUpdate: boolean
-  allowDelete: boolean
+  documents?: Document2[]
+  file?: string | null | undefined
+  allowMultiple?: boolean
+  allowUpdate?: boolean
+  allowDelete?: boolean
 }
 
 export interface Document2 {

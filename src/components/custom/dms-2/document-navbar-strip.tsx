@@ -134,7 +134,9 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
   SidebarTrigger,
+  useSidebar,
 } from '@/components/ui/sidebar';
+import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
 import type { RequiredDocument, DMSDocument } from '@/types/types';
 import { ChevronRight, FileText, Folder } from 'lucide-react';
@@ -147,6 +149,7 @@ interface DocumentStripProps extends Omit<
   requiredDocuments: RequiredDocument[];
   selectedDocumentId: string;
   onSelectDocument: (document: DMSDocument | any) => void;
+  isLoading?: boolean;
 }
 
 interface DocumentNodeProps {
@@ -243,9 +246,10 @@ const DocumentStrip = ({
   selectedDocumentId,
   onSelectDocument,
   className,
+  isLoading,
   ...props
 }: DocumentStripProps) => {
-  console.log("requiredDocuments", requiredDocuments);
+  const { isMobile } = useSidebar();
   const [expandedCategories, setExpandedCategories] = useState<Set<string>>(
     new Set()
   );
@@ -293,6 +297,9 @@ const DocumentStrip = ({
     });
   };
 
+  if (isLoading) {
+    return <Skeleton className="h-full w-full" />
+  }
   return (
     <Sidebar
       className={cn('bg-primary text-primary-foreground', className)}
@@ -351,6 +358,9 @@ const DocumentStrip = ({
               );
             })}
           </SidebarMenu>
+          {isMobile && (
+            <SidebarTrigger />
+          )}
         </div>
       </SidebarContent>
     </Sidebar>

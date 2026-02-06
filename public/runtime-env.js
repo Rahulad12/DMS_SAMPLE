@@ -1,1 +1,1 @@
-window.__RUNTIME_CONFIG__ = {"VITE_DOCUMENT_SIZE_LIMIT":".","VITE_API_BASE_URL":"."};
+window.__RUNTIME_CONFIG__ = {"VITE_DOCUMENT_SIZE_LIMIT":"5","VITE_API_BASE_URL":"http://localhost:3000/pupapi"};
