@@ -1,26 +1,30 @@
-import type { DMSDocument, RequiredDocument } from '../../../types/types';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
 import { FileText, CheckCircle2, RotateCcw } from 'lucide-react';
 import DocumentUploader from './document-uploader';
-import { mockDocument } from '@/data/mockDocument';
 
 interface DocumentDetailProps {
-  document: RequiredDocument;
-  onUpload: (files: File[]) => void;
+  document: any;
+  onUpload: (files: any[]) => void;
   onReplace: () => void;
-  selectedTypeId?: number;
 }
 
 export function DocumentDetail({
   document,
   onUpload,
   onReplace,
-  selectedTypeId,
 }: DocumentDetailProps) {
-  const isUploaded = document.documents.length > 0;
+  if (!document) {
+    return (
+      <div className="flex-1 flex items-center justify-center">
+        <p className="text-slate-400">Select a document to view</p>
+      </div>
+    );
+  }
 
-  const selectedType = document;
+  // Check if file is base64 data or a File object
+  const isBase64 = typeof document.file === 'string' && document.file.startsWith('data:');
+  const isUploaded = isBase64 || (document.file !== undefined && document.file !== null);
+  const previewSource = isBase64 ? document.file : document.previewUrl;
 
   return (
     <div className="flex-1 grid sm:grid-cols-1 md:grid-cols-[400px_1fr] overflow-hidden h-full">
@@ -28,22 +32,6 @@ export function DocumentDetail({
       <div className="p-4 border-b border-slate-200 bg-white h-full overflow-y-auto max-h-screen">
         <div className="flex items-center gap-2 mb-4">
           <h2 className="text-xl font-bold text-slate-800 capitalize">{document.label}</h2>
-          {document.isRequired && (
-            <Badge
-              variant="secondary"
-              className="bg-amber-100 text-amber-700 hover:bg-amber-100 border-0"
-            >
-              Required
-            </Badge>
-          )}
-          {!document.isRequired && (
-            <Badge
-              variant="outline"
-              className="text-slate-500 border-slate-200"
-            >
-              Optional
-            </Badge>
-          )}
         </div>
 
         {/* Upload Status / Uploader */}
@@ -51,10 +39,10 @@ export function DocumentDetail({
           <>
             <DocumentUploader
               maxSize={5 * 1024 * 1024}
-              multiple
+              multiple={document.allowMultiple !== false}
               onFilesChange={onUpload}
               className="bg-transparent"
-              documents={selectedType.documents}
+              documents={document.documents || []}
             />
           </>
         ) : (
@@ -65,22 +53,24 @@ export function DocumentDetail({
               </div>
               <div>
                 <p className="font-medium text-slate-800 text-sm break-all">
-                  {document.name}
+                  {document.file?.name || document.label}
                 </p>
                 <p className="text-xs text-slate-500">
                   Uploaded {new Date().toLocaleDateString()}
                 </p>
               </div>
             </div>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={onReplace}
-              className="text-slate-600 hover:text-slate-900"
-            >
-              <RotateCcw className="w-4 h-4 mr-2" />
-              Replace
-            </Button>
+            {document.allowUpdate !== false && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={onReplace}
+                className="text-slate-600 hover:text-slate-900"
+              >
+                <RotateCcw className="w-4 h-4 mr-2" />
+                Replace
+              </Button>
+            )}
           </div>
         )}
       </div>
@@ -93,30 +83,47 @@ export function DocumentDetail({
 
         <div className="flex-1 p-2 overflow-auto">
           {!isUploaded ? (
-            <div className="text-center text-slate-400">
-              <FileText className="w-16 h-16 mx-auto mb-3 opacity-30" />
-              <p className="text-sm">Upload a document to preview</p>
+            <div className="h-full flex items-center justify-center">
+              <div className="text-center">
+                <FileText className="w-16 h-16 mx-auto mb-3 opacity-30 text-slate-400" />
+                <p className="text-sm text-slate-400 mb-4">No document uploaded yet</p>
+                <label className="inline-block">
+                  <input
+                    type="file"
+                    multiple
+                    onChange={(e) => {
+                      if (e.target.files) {
+                        onUpload(Array.from(e.target.files));
+                      }
+                    }}
+                    className="hidden"
+                  />
+                  <Button className="bg-[#008eb0] hover:bg-[#007a94]">
+                    Upload Document
+                  </Button>
+                </label>
+              </div>
             </div>
           ) : (
             <div className="h-[calc(100vh-200px)] overflow-auto">
-              {document.type === 'image' && document.previewUrl ? (
+              {(isBase64 || document.type === 'image') && previewSource ? (
                 <div className="w-full h-full flex items-center justify-center bg-white">
                   <img
-                    src={document.previewUrl}
-                    alt={document.name}
+                    src={previewSource}
+                    alt={document.label}
                     className="max-h-full max-w-full object-contain rounded"
                   />
                 </div>
-              ) : document.previewUrl ? (
+              ) : previewSource ? (
                 <div className="w-full h-full flex flex-col">
                   <iframe
-                    src={document.previewUrl}
+                    src={previewSource}
                     className="flex-1 w-full h-full"
-                    title={document.name}
+                    title={document.label}
                   />
                   <div className="mt-4 text-center">
                     <a
-                      href={document.previewUrl}
+                      href={previewSource}
                       target="_blank"
                       rel="noreferrer"
                       className="text-sm text-[#008eb0] hover:underline inline-flex items-center gap-1"
@@ -146,12 +153,14 @@ export function DocumentDetail({
                     <FileText className="w-8 h-8 text-slate-500" />
                   </div>
                   <h3 className="font-semibold text-slate-800 mb-1">
-                    {document.file?.name}
+                    {document.file?.name || typeof document.file === 'string' ? 'Document' : 'File'}
                   </h3>
                   <p className="text-sm text-slate-500 mb-4">
-                    {(document.file?.size || 0) / 1024 > 1024
-                      ? `${((document.file?.size || 0) / 1024 / 1024).toFixed(2)} MB`
-                      : `${Math.round((document.file?.size || 0) / 1024)} KB`}
+                    {typeof document.file === 'object' && document.file?.size
+                      ? (document.file.size / 1024 > 1024
+                        ? `${(document.file.size / 1024 / 1024).toFixed(2)} MB`
+                        : `${Math.round(document.file.size / 1024)} KB`)
+                      : 'Base64 encoded'}
                   </p>
                 </div>
               )}
@@ -159,6 +168,6 @@ export function DocumentDetail({
           )}
         </div>
       </div>
-    </div >
+    </div>
   );
 }

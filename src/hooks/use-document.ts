@@ -1,77 +1,120 @@
 import { useState } from "react";
 import { toast } from "sonner";
-import type { RequiredDocument, DocumentStatus } from "@/types/types";
-
-export type ExtendedDocument = RequiredDocument & {
-  status?: DocumentStatus;
-  file?: File;
-  previewUrl?: string;
-  type?: "image" | "pdf";
-};
+import type { RequiredDocument } from "@/types/types";
 
 export function useDocument(initialDocuments: RequiredDocument[]) {
-  // Initialize with extended properties
-  const [documents, setDocuments] = useState<ExtendedDocument[]>(() =>
-    initialDocuments.map((doc) => ({
-      ...doc,
-      status: "pending" as DocumentStatus,
-    }))
-  );
+  const [documents, setDocuments] = useState<RequiredDocument[]>(initialDocuments);
+  const [activeId, setActiveId] = useState<string>("");
 
-  const [activeId, setActiveId] = useState<string>(initialDocuments[0]?.id || "");
-  const activeIndex = documents.findIndex((d) => d.id === activeId).toString();
-  const activeDocument = documents[Number(activeIndex)];
-
-  // Calculate uploaded count based on the 'status' or actual file presence
-  const uploadedCount = documents.filter((d) => d.status === "uploaded").length;
-
-  const handleSelectDocument = (id: string) => {
-    setActiveId(id);
+  // Helper: Find a document at any level by label
+  const findDocumentByLabel = (docs: RequiredDocument[], targetLabel: string): any => {
+    for (let category of docs) {
+      if (category.documents && category.documents.length > 0) {
+        for (let doc of category.documents) {
+          if (doc.label === targetLabel) {
+            return { ...doc, categoryId: category.id };
+          }
+          if (doc.documents && doc.documents.length > 0) {
+            for (let nestedDoc of doc.documents) {
+              if (nestedDoc.label === targetLabel) {
+                return { ...nestedDoc, docId: doc.id, categoryId: category.id, parentLabel: doc.label };
+              }
+            }
+          }
+        }
+      }
+    }
+    return null;
   };
 
-  const handleUpload = (files: File[]) => {
-    if (files.length === 0 || Number(activeIndex) === -1) return;
+  const activeDocument = activeId ? findDocumentByLabel(documents, activeId) : null;
+  
+  // Count uploaded documents
+  const uploadedCount = documents.reduce((count, category) => {
+    if (category.documents) {
+      return count + category.documents.filter((doc: any) => 
+        doc.documents?.some((d: any) => d.file)
+      ).length;
+    }
+    return count;
+  }, 0);
 
-    const file = files[0];
+  const handleSelectDocument = (label: string) => {
+    setActiveId(label);
+  };
+
+  const handleUpload = (files: any[]) => {
+    if (files.length === 0 || !activeDocument) return;
+
+    const file = files[0].file || files[0];
     const isImage = file.type.startsWith("image/");
     const previewUrl = URL.createObjectURL(file);
 
-    const newDocuments = [...documents];
-    newDocuments[Number(activeIndex)] = {
-      ...newDocuments[Number(activeIndex)],
-      status: "uploaded",
-      file: file,
-      previewUrl: previewUrl,
-      type: isImage ? "image" : "pdf",
-    };
+    const newDocuments = documents.map((category) => {
+      if (category.id === activeDocument.categoryId) {
+        return {
+          ...category,
+          documents: category.documents.map((doc: any) => {
+            if (doc.id === activeDocument.docId) {
+              return {
+                ...doc,
+                documents: doc.documents?.map((deepDoc: any) => 
+                  deepDoc.label === activeId
+                    ? { ...deepDoc, file: file, previewUrl: previewUrl, type: isImage ? "image" : "pdf" }
+                    : deepDoc
+                ),
+              };
+            }
+            if (doc.label === activeId && doc.documents) {
+              return { ...doc, documents: doc.documents };
+            }
+            return doc;
+          }),
+        };
+      }
+      return category;
+    });
 
     setDocuments(newDocuments);
     toast.success(`${activeDocument.label} uploaded successfully.`);
   };
 
   const handleReplace = () => {
-    if (Number(activeIndex) === -1) return;
+    if (!activeDocument) return;
 
-    const newDocuments = [...documents];
-    // Revoke old URL to avoid memory leaks
-    if (newDocuments[Number(activeIndex)].previewUrl) {
-      URL.revokeObjectURL(newDocuments[Number(activeIndex)].previewUrl!);
+    if (activeDocument.previewUrl) {
+      URL.revokeObjectURL(activeDocument.previewUrl);
     }
 
-    newDocuments[Number(activeIndex)] = {
-      ...newDocuments[Number(activeIndex)],
-      status: "pending",
-      file: undefined,
-      previewUrl: undefined,
-      type: undefined
-    };
+    const newDocuments = documents.map((category) => {
+      if (category.id === activeDocument.categoryId) {
+        return {
+          ...category,
+          documents: category.documents.map((doc: any) => {
+            if (doc.id === activeDocument.docId) {
+              return {
+                ...doc,
+                documents: doc.documents?.map((deepDoc: any) => 
+                  deepDoc.label === activeId
+                    ? { ...deepDoc, file: undefined, previewUrl: undefined, type: undefined }
+                    : deepDoc
+                ),
+              };
+            }
+            return doc;
+          }),
+        };
+      }
+      return category;
+    });
+
     setDocuments(newDocuments);
   };
 
   return {
     documents,
     activeDocument,
-    activeIndex,
+    activeIndex: activeId,
     activeId,
     uploadedCount,
     handleSelectDocument,
